@@ -1,16 +1,15 @@
 // Ionic template App
 
 // angular.module is a global place for creating, registering and retrieving Angular modules
-// 'SimpleRESTIonic' is the name of this angular module example (also set in a <body> attribute in index.html)
+// 'shoplist' is the name of this angular module example (also set in a <body> attribute in index.html)
 // the 2nd parameter is an array of 'requires'
-angular.module('SimpleRESTIonic', ['ionic', 'backand', 'SimpleRESTIonic.controllers', 'SimpleRESTIonic.services'])
+angular.module('shoplist', ['ionic', 'backand', 'shoplist.controllers', 'shoplist.services'])
 
     /*   .run(function (, Backand) {
 
      })
      */
-    .config(function (BackandProvider, $stateProvider, $urlRouterProvider, $httpProvider) {
-        // change here to your appName
+  .config(function (BackandProvider, $stateProvider, $urlRouterProvider, $httpProvider) {
       BackandProvider.setAppName('shoplist');
       BackandProvider.setSignUpToken('6ecbc769-d8c3-47a8-9ecb-7892cd4ab6d3');
       BackandProvider.setAnonymousToken('ccaf46d0-8b53-4031-a9ad-3f2217459934');
@@ -51,7 +50,7 @@ angular.module('SimpleRESTIonic', ['ionic', 'backand', 'SimpleRESTIonic.controll
             }
         );
 
-        $urlRouterProvider.otherwise('/tabs/dashboard');
+        $urlRouterProvider.otherwise('/tabs/login');
         $httpProvider.interceptors.push('APIInterceptor');
     })
 
