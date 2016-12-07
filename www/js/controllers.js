@@ -114,7 +114,21 @@ angular.module('shoplist.controllers', [])
         function getAll() {
             ItemsModel.all()
                 .then(function (result) {
-                    vm.data = result.data.data;
+                    var toDel = ItemsModel.deletable();
+                    console.log("toDel");
+                    console.log(toDel);
+                    console.log("result.data.data");
+                    console.log(result.data.data);
+                    console.log("ItemsModel.local");
+                    console.log(ItemsModel.local());
+
+                    vm.data = result.data.data
+                        .filter(function(obj){
+                            return toDel.indexOf(obj.id) > -1);
+                        })
+                        .concat(ItemsModel.local());
+                    console.log("vm.data");
+                    console.log(vm.data);
                 });
         }
 
@@ -188,6 +202,12 @@ angular.module('shoplist.controllers', [])
                     });
             }
         }
+        function sync() {
+            ItemsModel.sync()
+                .then(function (result) {
+                    getAll();
+                });
+        }
 
         vm.objects = [];
         vm.edited = null;
@@ -205,6 +225,7 @@ angular.module('shoplist.controllers', [])
         vm.cancelCreate = cancelCreate;
         vm.goToBackand = goToBackand;
         vm.isAuthorized = false;
+        vm.sync = sync;
 
         $rootScope.$on('authorized', function () {
             vm.isAuthorized = true;
