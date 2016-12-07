@@ -1,247 +1,248 @@
 angular.module('shoplist.controllers', [])
 
-    .controller('LoginCtrl', function (Backand, $state, $rootScope, LoginService) {
-        var login = this;
+  .controller('LoginCtrl', function (Backand, $state, $rootScope, LoginService) {
+    var login = this;
 
-        function signin() {
-            LoginService.signin(login.email, login.password)
-                .then(function () {
-                    onLogin();
-                }, function (error) {
-                    console.log(error)
-                })
-        }
+    function signin() {
+      LoginService.signin(login.email, login.password)
+        .then(function () {
+          onLogin();
+        }, function (error) {
 
-        function anonymousLogin() {
-            LoginService.anonymousLogin();
-            onLogin('Guest');
-        }
-
-        function onLogin(username) {
-            $rootScope.$broadcast('authorized');
-            $state.go('tab.dashboard');
-            login.username = username || Backand.getUsername();
+        })
     }
 
-        function signout() {
-            LoginService.signout()
-                .then(function () {
-                    //$state.go('tab.login');
-                    $rootScope.$broadcast('logout');
-                    $state.go($state.current, {}, {reload: true});
-                })
+    function anonymousLogin() {
+      LoginService.anonymousLogin();
+      onLogin('Guest');
+    }
 
-        }
+    function onLogin(username) {
+      $rootScope.$broadcast('authorized');
+      $state.go('tab.dashboard');
+      login.username = username || Backand.getUsername();
+    }
 
-        function socialSignIn(provider) {
-            LoginService.socialSignIn(provider)
-                .then(onValidLogin, onErrorInLogin);
+    function signout() {
+      LoginService.signout()
+        .then(function () {
+          //$state.go('tab.login');
+          $rootScope.$broadcast('logout');
+          $state.go($state.current, {}, {reload: true});
+        })
 
-        }
+    }
 
-        function socialSignUp(provider) {
-            LoginService.socialSignUp(provider)
-                .then(onValidLogin, onErrorInLogin);
+    function socialSignIn(provider) {
+      LoginService.socialSignIn(provider)
+        .then(onValidLogin, onErrorInLogin);
 
-        }
+    }
 
-        onValidLogin = function(response){
-            onLogin();
-            login.username = response.data || login.username;
-        }
+    function socialSignUp(provider) {
+      LoginService.socialSignUp(provider)
+        .then(onValidLogin, onErrorInLogin);
 
-        onErrorInLogin = function(rejection){
-            login.error = rejection.data;
-            $rootScope.$broadcast('logout');
+    }
 
-        }
+    onValidLogin = function (response) {
+      onLogin();
+      login.username = response.data || login.username;
+    }
 
+    onErrorInLogin = function (rejection) {
+      login.error = rejection.data;
+      $rootScope.$broadcast('logout');
 
-        login.username = '';
-        login.error = '';
-        login.signin = signin;
-        login.signout = signout;
-        login.anonymousLogin = anonymousLogin;
-        login.socialSignup = socialSignUp;
-        login.socialSignin = socialSignIn;
-
-    })
-
-    .controller('SignUpCtrl', function (Backand, $state, $rootScope, LoginService) {
-        var vm = this;
-
-        vm.signup = signUp;
-
-        function signUp(){
-            vm.errorMessage = '';
-
-            LoginService.signup(vm.firstName, vm.lastName, vm.email, vm.password, vm.again)
-                .then(function (response) {
-                    // success
-                    onLogin();
-                }, function (reason) {
-                    if(reason.data.error_description !== undefined){
-                        vm.errorMessage = reason.data.error_description;
-                    }
-                    else{
-                        vm.errorMessage = reason.data;
-                    }
-                });
-        }
+    }
 
 
-        function onLogin() {
-            $rootScope.$broadcast('authorized');
-            $state.go('tab.dashboard');
-        }
+    login.username = '';
+    login.error = '';
+    login.signin = signin;
+    login.signout = signout;
+    login.anonymousLogin = anonymousLogin;
+    login.socialSignup = socialSignUp;
+    login.socialSignin = socialSignIn;
+
+  })
+
+  .controller('SignUpCtrl', function (Backand, $state, $rootScope, LoginService) {
+    var vm = this;
+
+    vm.signup = signUp;
+
+    function signUp() {
+      vm.errorMessage = '';
+
+      LoginService.signup(vm.firstName, vm.lastName, vm.email, vm.password, vm.again)
+        .then(function (response) {
+          // success
+          onLogin();
+        }, function (reason) {
+          if (reason.data.error_description !== undefined) {
+            vm.errorMessage = reason.data.error_description;
+          }
+          else {
+            vm.errorMessage = reason.data;
+          }
+        });
+    }
 
 
-        vm.email = '';
-        vm.password ='';
-        vm.again = '';
-        vm.firstName = '';
-        vm.lastName = '';
-        vm.errorMessage = '';
-    })
+    function onLogin() {
+      $rootScope.$broadcast('authorized');
+      $state.go('tab.dashboard');
+    }
 
-    .controller('DashboardCtrl', function (ItemsModel, $rootScope) {
-        var vm = this;
 
-        function goToBackand() {
-            window.location = 'http://docs.backand.com';
-        }
+    vm.email = '';
+    vm.password = '';
+    vm.again = '';
+    vm.firstName = '';
+    vm.lastName = '';
+    vm.errorMessage = '';
+  })
 
-        function getAll() {
-            ItemsModel.all()
-                .then(function (result) {
-                    var toDel = ItemsModel.deletable();
-                    console.log("toDel");
-                    console.log(toDel);
-                    console.log("result.data.data");
-                    console.log(result.data.data);
-                    console.log("ItemsModel.local");
-                    console.log(ItemsModel.local());
+  .controller('DashboardCtrl', function (ItemsModel, $rootScope) {
+    var vm = this;
 
-                    vm.data = result.data.data
-                        .filter(function(obj){
-                            return toDel.indexOf(obj.id) > -1);
-                        })
-                        .concat(ItemsModel.local());
-                    console.log("vm.data");
-                    console.log(vm.data);
-                });
-        }
+    function goToBackand() {
+      window.location = 'http://docs.backand.com';
+    }
 
-        function clearData() {
-            vm.data = null;
-        }
+    function getAll() {
+      ItemsModel.all()
+        .then(function (result) {
+            var toDel = ItemsModel.deletable();
 
-        function create(object) {
-            if (object.amount == "" || object.amount < 0) object.amount = 0;
-            if (object.price == "" || object.price < 0) object.price = 0;
-            ItemsModel.create(object)
-                .then(function (result) {
-                    cancelCreate();
-                    getAll();
-                });
-        }
 
-        function update(object) {
-            ItemsModel.update(object.id, object)
-                .then(function (result) {
-                    cancelEditing();
-                    getAll();
-                });
-        }
 
-        function deleteObject(id) {
-            ItemsModel.delete(id)
-                .then(function (result) {
-                    cancelEditing();
-                    getAll();
-                });
-        }
+            vm.data = result.data.data
+              .filter(function (obj) {
 
-        function initCreateForm() {
-            vm.newObject = {name: '', description: ''};
-        }
 
-        function setEdited(object) {
-            vm.edited = angular.copy(object);
-            vm.isEditing = true;
-        }
+                return toDel.length == 0 || toDel.indexOf(obj.id) == -1;
+              })
+              .concat(ItemsModel.local());
 
-        function isCurrent(id) {
-            return vm.edited !== null && vm.edited.id === id;
-        }
 
-        function cancelEditing() {
-            vm.edited = null;
-            vm.isEditing = false;
-        }
+          }
+        );
+    }
 
-        function cancelCreate() {
-            initCreateForm();
-            vm.isCreating = false;
-        }
+    function clearData() {
+      vm.data = null;
+    }
 
-        function inc(object) {
-            object.amount += 1;
-            ItemsModel.update(object.id, object)
-                .then(function (result) {
-                    getAll();
-                });
-        }
+    function create(object) {
+      if (object.amount == "" || object.amount < 0) object.amount = 0;
+      if (object.price == "" || object.price < 0) object.price = 0;
+      ItemsModel.create(object)
+        .then(function (result) {
+          cancelCreate();
+          getAll();
+        });
+    }
 
-        function dec(object) {
-            if(object.amount > 0){
-                object.amount -= 1;
-                ItemsModel.update(object.id, object)
-                    .then(function (result) {
-                        getAll();
-                    });
-            }
-        }
-        function sync() {
-            ItemsModel.sync()
-                .then(function (result) {
-                    getAll();
-                });
-        }
+    function update(object) {
+      ItemsModel.update(object.id, object)
+        .then(function (result) {
+          cancelEditing();
+          getAll();
+        });
+    }
 
-        vm.objects = [];
-        vm.edited = null;
-        vm.isEditing = false;
-        vm.isCreating = false;
-        vm.getAll = getAll;
-        vm.create = create;
-        vm.update = update;
-        vm.inc = inc;
-        vm.dec = dec;
-        vm.delete = deleteObject;
-        vm.setEdited = setEdited;
-        vm.isCurrent = isCurrent;
-        vm.cancelEditing = cancelEditing;
-        vm.cancelCreate = cancelCreate;
-        vm.goToBackand = goToBackand;
-        vm.isAuthorized = false;
-        vm.sync = sync;
+    function deleteObject(id) {
+      ItemsModel.delete(id)
+        .then(function (result) {
+          cancelEditing();
+          getAll();
+        });
+    }
 
-        $rootScope.$on('authorized', function () {
-            vm.isAuthorized = true;
+    function initCreateForm() {
+      vm.newObject = {name: '', description: ''};
+    }
+
+    function setEdited(object) {
+      vm.edited = angular.copy(object);
+      vm.isEditing = true;
+    }
+
+    function isCurrent(id) {
+      return vm.edited !== null && vm.edited.id === id;
+    }
+
+    function cancelEditing() {
+      vm.edited = null;
+      vm.isEditing = false;
+    }
+
+    function cancelCreate() {
+      initCreateForm();
+      vm.isCreating = false;
+    }
+
+    function inc(object) {
+      object.amount += 1;
+      ItemsModel.update(object.id, object)
+        .then(function (result) {
+          getAll();
+        });
+    }
+
+    function dec(object) {
+      if (object.amount > 0) {
+        object.amount -= 1;
+        ItemsModel.update(object.id, object)
+          .then(function (result) {
             getAll();
+          });
+      }
+    }
+
+    function sync() {
+      ItemsModel.sync()
+        .then(function (result) {
+          getAll();
         });
+    }
 
-        $rootScope.$on('logout', function () {
-            clearData();
-        });
+    vm.objects = [];
+    vm.edited = null;
+    vm.isEditing = false;
+    vm.isCreating = false;
+    vm.getAll = getAll;
+    vm.create = create;
+    vm.update = update;
+    vm.inc = inc;
+    vm.dec = dec;
+    vm.delete = deleteObject;
+    vm.setEdited = setEdited;
+    vm.isCurrent = isCurrent;
+    vm.cancelEditing = cancelEditing;
+    vm.cancelCreate = cancelCreate;
+    vm.goToBackand = goToBackand;
+    vm.isAuthorized = false;
+    vm.sync = sync;
 
-        if (!vm.isAuthorized) {
-            $rootScope.$broadcast('logout');
-        }
-
-        initCreateForm();
-        getAll();
-
+    $rootScope.$on('authorized', function () {
+      vm.isAuthorized = true;
+      getAll();
     });
+
+    $rootScope.$on('logout', function () {
+      clearData();
+    });
+
+    if (!vm.isAuthorized) {
+      $rootScope.$broadcast('logout');
+    }
+
+    initCreateForm();
+    getAll();
+
+  })
+;
 
