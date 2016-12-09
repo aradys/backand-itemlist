@@ -48,14 +48,13 @@ angular.module('shoplist.controllers', [])
     onValidLogin = function (response) {
       onLogin();
       login.username = response.data || login.username;
-    }
+    };
 
     onErrorInLogin = function (rejection) {
       login.error = rejection.data;
       $rootScope.$broadcast('logout');
 
-    }
-
+    };
 
     login.username = '';
     login.error = '';
@@ -89,12 +88,10 @@ angular.module('shoplist.controllers', [])
         });
     }
 
-
     function onLogin() {
       $rootScope.$broadcast('authorized');
       $state.go('tab.dashboard');
     }
-
 
     vm.email = '';
     vm.password = '';
@@ -115,18 +112,11 @@ angular.module('shoplist.controllers', [])
       ItemsModel.all()
         .then(function (result) {
             var toDel = ItemsModel.deletable();
-
-
-
             vm.data = result.data.data
               .filter(function (obj) {
-
-
                 return toDel.length == 0 || toDel.indexOf(obj.id) == -1;
               })
               .concat(ItemsModel.local());
-
-
           }
         );
     }
@@ -185,21 +175,22 @@ angular.module('shoplist.controllers', [])
     }
 
     function inc(object) {
-      object.amount += 1;
-      ItemsModel.update(object.id, object)
+      // object.amount += 1;
+      ItemsModel.inc(object.id, object)
         .then(function (result) {
+          console.log(object.id);
           getAll();
         });
     }
 
     function dec(object) {
-      if (object.amount > 0) {
-        object.amount -= 1;
-        ItemsModel.update(object.id, object)
+      // if (object.amount > 0) {
+        // object.amount -= 1;
+        ItemsModel.dec(object.id, object)
           .then(function (result) {
             getAll();
           });
-      }
+      // }
     }
 
     function sync() {

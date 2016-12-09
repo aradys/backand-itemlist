@@ -16,6 +16,7 @@ angular.module('shoplist.services', [])
       baseUrl = '/1/objects/',
       objectName = 'items/';
 
+
     var StorageModule = (function () {
       var instance;
 
@@ -28,6 +29,10 @@ angular.module('shoplist.services', [])
         object.localAmounts = JSON.parse(localStorage.getItem("localAmounts"));
         if (!object.localAmounts) {
           object.localAmounts = [];
+        }
+        object.serverAmounts = JSON.parse(localStorage.getItem("serverAmounts"));
+        if (!object.serverAmounts) {
+          object.serverAmounts = [];
         }
         object.fromServer = JSON.parse(localStorage.getItem("fromServer"));
         if (!object.fromServer) {
@@ -44,28 +49,107 @@ angular.module('shoplist.services', [])
 
         object.synchronize = function () {
           instance.fromServer = $http.get(getUrl());
+          instance.serverAmounts = $http.get(getDeviceUrl());
           instance.newLocal.forEach(function (object) {
             $http.post(getUrl(), object);
+          });
+          instance.localAmounts.forEach(function (object) {
+              var real_id = instance.getId(object.item_id);
+              $http.put(getDeviceUrlForId(real_id), object);
           });
           instance.toChange.forEach(function (object) {
             $http.put(getUrlForId(object.id), object);
           });
           instance.toDelete.forEach(function (id) {
+            console.log(id);
             $http.delete(getUrlForId(id));
           });
-          instance.toDelete = [];
           instance.newLocal = [];
+          instance.localAmounts = [];
+          instance.toDelete = [];
           instance.toChange = [];
-          instance.serverAmounts = [];
           saveAll();
+        };
+
+        object.getId = function (object) {
+
+          var result = $http({
+            method: 'GET',
+            url: baseUrl + "device",
+            params: {
+              pageSize: 1,
+              pageNumber: 1,
+              sort: "asc",
+              filter: JSON.stringify([ {    "fieldName": "item_id",    "operator": "in",    "value": "object.id"  }])
+            }
+          });
+
+          // var deviceList = Restangular.all("device").getList({ pageSize: 1, pageNumber: 1, filter: JSON.stringify([ {    "fieldName": "item_id",    "operator": "in",    "value": "78"  }]) }).$object;
+
+          console.log(result);
+          saveAll();
+          // return result.data.id;
         };
 
         object.add = function (object) {
           instance.newLocal.push(object);
-          instance.localAmounts.push({item_id: object.id, device_id: window.device.uuid, amount: object.amount});
+          // var device_uuid = $cordovaDevice.getUUID();
+          // var device_uuid = device.uuid;
+          instance.localAmounts.push({item_id: object.id, device_id: "lenovo", amount: object.amount});
+
+          // console.log('Device UUID is: ' + Device.device.uuid);
           saveAll();
         };
 
+        object.increase = function (object) {
+            var index = instance.newLocal.indexOf(object);
+            if (index > -1) {
+              instance.newLocal[index].amount = parseInt(instance.newLocal[index].amount) + 1;
+            } else {
+              var onLocalAmounts = 0;
+              instance.localAmounts.forEach(function (locAm){
+                if (locAm.item_id == object.id){
+                  locAm.amount += 1;
+                  onLocalAmounts = 1;
+                }
+              });
+              if (!onLocalAmounts) {
+                instance.localAmounts.push({id: object.id, item_id: object.id, device_id: "lenovo", amount: object.amount});
+                instance.localAmounts.forEach(function (locAm){
+                  if (locAm.id == object.id){
+                    locAm.amount += 1;
+                  }
+                });
+              }
+          }
+          saveAll();
+        };
+
+        object.decrease = function (object) {
+          var index = instance.newLocal.indexOf(object);
+          if (index > -1) {
+            instance.newLocal[index].amount = parseInt(instance.newLocal[index].amount) + 1;
+          } else {
+            var onLocalAmounts = 0;
+            instance.localAmounts.forEach(function (locAm){
+              if (locAm.item_id == object.id){
+                locAm.amount -= 1;
+                onLocalAmounts = 1;
+              }
+            });
+            if (!onLocalAmounts) {
+              instance.localAmounts.push({id: object.id, item_id: object.id, device_id: "lenovo", amount: object.amount});
+              instance.localAmounts.forEach(function (locAm){
+                if (locAm.id == object.id){
+                  locAm.amount -= 1;
+                }
+              });
+            }
+          }
+          saveAll();
+        };
+
+        // do usuniecia
         object.change = function (object) {
           var local = 0;
           instance.newLocal.forEach(function (object) {
@@ -84,27 +168,31 @@ angular.module('shoplist.services', [])
         object.del = function (id) {
 
           var newDeletable = [];
+          var newItem = 0;
           instance.newLocal.forEach(function (local) {
             if (local.id == id) {
               newDeletable.push(local);
+              newItem = 1;
             }
           });
-          newDeletable.forEach(function (del) {
-            var index = instance.newLocal.indexOf(del);
-            if (index > -1) {
-              instance.newLocal.splice(index, 1);
-            }
-          });
-          object.toDelete.push(id);
+          if (newItem) {
+            newDeletable.forEach(function (del) {
+              var index = instance.newLocal.indexOf(del);
+              if (index > -1) {
+                instance.newLocal.splice(index, 1);
+              }
+            });
+          } else {
+            object.toDelete.push(id);
+          }
           saveAll();
         };
 
         object.all = function () {
+          // object.fromServer.forEach(function (obj){
+          //   obj.amount = serverAmounts.amount + localAmounts.amount;
+          // });
           return object.fromServer;
-
-          // .then(function(result){
-          //     return result.data.data + object.newLocal;
-          // })
         };
         return object;
       }
@@ -113,11 +201,10 @@ angular.module('shoplist.services', [])
         var storageInstance = StorageModule.getInstance();
 
         localStorage.setItem("toDelete", JSON.stringify(storageInstance.toDelete));
-
         localStorage.setItem("fromServer", JSON.stringify(storageInstance.fromServer));
-
         localStorage.setItem("newLocal", JSON.stringify(storageInstance.newLocal));
-
+        localStorage.setItem("localAmounts", JSON.stringify(storageInstance.localAmounts));
+        localStorage.setItem("serverAmounts", JSON.stringify(storageInstance.serverAmounts));
         localStorage.setItem("toChange", JSON.stringify(storageInstance.toChange));
       }
 
@@ -136,209 +223,6 @@ angular.module('shoplist.services', [])
       return Backand.getApiUrl() + baseUrl + objectName;
     }
 
-    function getUrlForId(id) {
-      return getUrl() + id;
-    }
-
-    service.all = function () {
-      var storageInstance = StorageModule.getInstance();
-      return new Promise(function (resolve, reject) {
-        resolve(storageInstance.all());
-      });
-    };
-
-    service.local = function () {
-      var storageInstance = StorageModule.getInstance();
-      return storageInstance.newLocal;
-    };
-
-    service.deletable = function () {
-      var storageInstance = StorageModule.getInstance();
-      return storageInstance.toDelete;
-    };
-
-    service.fetch = function (id) {
-      var storageInstance = StorageModule.getInstance();
-      return storageInstance.all().filter(function (obj) {
-        return obj.id = id
-      });
-    };
-
-    service.create = function (object) {
-      object.username = Backand.getUsername();
-      object.id = object.name;
-      var storageInstance = StorageModule.getInstance();
-      storageInstance.add(object);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
-    };
-
-    service.update = function (id, object) {
-      // musisz sprawdzić czy jest tylko na urządzeniu czy też na serwerze i zmodyfikować odpowiedni obiekt
-      var storageInstance = StorageModule.getInstance();
-      storageInstance.change(object);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
-    };
-
-    service.inc = function (id, object) {
-      // j.w.
-      return $http.put(getUrlForId(id), object);
-    };
-
-    service.dec = function (id, object) {
-      // j.w.
-      return $http.put(getUrlForId(id), object);
-    };
-
-    service.delete = function (id) {
-      var storageInstance = StorageModule.getInstance();
-      storageInstance.del(id);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
-    };
-
-    service.sync = function () {
-      var storageInstance = StorageModule.getInstance();
-      storageInstance.synchronize();
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
-    };
-  })
-
-
-
-  .service('ItemsModel', function ($http, Backand) {
-    var service = this,
-      baseUrl = '/1/objects/',
-      objectName = 'items/';
-
-
-    var StorageModule = (function () {
-      var instance;
-
-      function createInstance() {
-        var object = new Object();
-        object.toDelete = JSON.parse(localStorage.getItem("toDelete"));
-        if (!object.toDelete) {
-          object.toDelete = [];
-        }
-        object.localAmounts = JSON.parse(localStorage.getItem("localAmounts"));
-        if (!object.localAmounts) {
-          object.localAmounts = [];
-        }
-        object.fromServer = JSON.parse(localStorage.getItem("fromServer"));
-        if (!object.fromServer) {
-          object.fromServer = [];
-        }
-        object.newLocal = JSON.parse(localStorage.getItem("newLocal"));
-        if (!object.newLocal) {
-          object.newLocal = [];
-        }
-        object.toChange = JSON.parse(localStorage.getItem("toChange"));
-        if (!object.toChange) {
-          object.toChange = [];
-        }
-
-        object.synchronize = function () {
-          instance.fromServer = $http.get(getUrl());
-          instance.newLocal.forEach(function (object) {
-            $http.post(getUrl(), object);
-          });
-          instance.toChange.forEach(function (object) {
-            $http.put(getUrlForId(object.id), object);
-          });
-          instance.toDelete.forEach(function (id) {
-            $http.delete(getUrlForId(id));
-          });
-          instance.toDelete = [];
-          instance.newLocal = [];
-          instance.toChange = [];
-          instance.serverAmounts = [];
-          saveAll();
-        };
-
-        object.add = function (object) {
-          instance.newLocal.push(object);
-          instance.localAmounts.push({item_id: object.id, device_id: window.device.uuid, amount: object.amount});
-          saveAll();
-        };
-
-        object.change = function (object) {
-          var local = 0;
-          instance.newLocal.forEach(function (object) {
-            var index = instance.newLocal.indexOf(object);
-            if (index > -1) {
-              instance.newLocal[index] = object;
-              local = 1;
-            }
-          });
-          if (local == 0) {
-            instance.toChange.push(object);
-          }
-          saveAll();
-        };
-
-        object.del = function (id) {
-
-          var newDeletable = [];
-          instance.newLocal.forEach(function (local) {
-            if (local.id == id) {
-              newDeletable.push(local);
-            }
-          });
-          newDeletable.forEach(function (del) {
-            var index = instance.newLocal.indexOf(del);
-            if (index > -1) {
-              instance.newLocal.splice(index, 1);
-            }
-          });
-          object.toDelete.push(id);
-          saveAll();
-        };
-
-        object.all = function () {
-          return object.fromServer;
-
-          // .then(function(result){
-          //     return result.data.data + object.newLocal;
-          // })
-        };
-        return object;
-      }
-
-      function saveAll() {
-        var storageInstance = StorageModule.getInstance();
-
-        localStorage.setItem("toDelete", JSON.stringify(storageInstance.toDelete));
-
-        localStorage.setItem("fromServer", JSON.stringify(storageInstance.fromServer));
-
-        localStorage.setItem("newLocal", JSON.stringify(storageInstance.newLocal));
-
-        localStorage.setItem("toChange", JSON.stringify(storageInstance.toChange));
-      }
-
-      return {
-        getInstance: function () {
-          if (!instance) {
-            instance = createInstance();
-          }
-          return instance;
-        }
-      };
-    })();
-
-
-    function getUrl() {
-      return Backand.getApiUrl() + baseUrl + objectName;
-    }
-    baseUrl = '/1/objects/',
-      objectName = 'items/';
     function getDeviceUrl(){
       return Backand.getApiUrl() + baseUrl + 'device/';
     }
@@ -347,6 +231,52 @@ angular.module('shoplist.services', [])
       return getUrl() + id;
     }
 
+    function getDeviceUrlForId(id) {
+      return getDeviceUrl() + id;
+    }
+
+    // function getIdFromDeviceTable(id){
+    //   // var storageInstance = StorageModule.getInstance();
+    //   // return storageInstance.all().filter(function (id) {
+    //     return $http({
+    //       method: 'GET',
+    //       url: baseUrl + "device/",
+    //       params: {
+    //         filter: JSON.stringify([{
+    //           fieldName: "item_id",
+    //           operator: "in",
+    //           value: id
+    //         }])
+    //       }
+    //     }).then(function (response) {
+    //       if (response.data && response.data.data && response.data.data.length == 1)
+    //         return response.data.data[0];
+    //     });
+    //   }
+
+    // service.getIdFromDeviceTable = function (id){
+    // // function getIdFromDeviceTable (id){
+    //   return $http({
+    //     method: 'GET',
+    //     url: baseUrl + "device/",
+    //     params: {
+    //       filter: JSON.stringify([{
+    //         fieldName: "item_id",
+    //         operator: "in",
+    //         value: id
+    //       }])
+    //     }
+    //   })
+    // };
+
+    service.getIdFromDeviceTable = function (id){
+      var storageInstance = StorageModule.getInstance();
+      storageInstance.getId(object);
+      return new Promise(function (resolve, reject) {
+        resolve("Success!");
+      });
+    };
+
     service.all = function () {
       var storageInstance = StorageModule.getInstance();
       return new Promise(function (resolve, reject) {
@@ -381,8 +311,8 @@ angular.module('shoplist.services', [])
       });
     };
 
+    // do usuniecia
     service.update = function (id, object) {
-      // musisz sprawdzić czy jest tylko na urządzeniu czy też na serwerze i zmodyfikować odpowiedni obiekt
       var storageInstance = StorageModule.getInstance();
       storageInstance.change(object);
       return new Promise(function (resolve, reject) {
@@ -391,13 +321,19 @@ angular.module('shoplist.services', [])
     };
 
     service.inc = function (id, object) {
-      // j.w.
-      return $http.put(getUrlForId(id), object);
+      var storageInstance = StorageModule.getInstance();
+      storageInstance.increase(object);
+      return new Promise(function (resolve, reject) {
+        resolve("Success!");
+      });
     };
 
     service.dec = function (id, object) {
-      // j.w.
-      return $http.put(getUrlForId(id), object);
+      var storageInstance = StorageModule.getInstance();
+      storageInstance.decrease(object);
+      return new Promise(function (resolve, reject) {
+        resolve("Success!");
+      });
     };
 
     service.delete = function (id) {
@@ -418,25 +354,17 @@ angular.module('shoplist.services', [])
   })
 
 
-
-
-
-
-
   .service('LoginService', function (Backand) {
     var service = this;
 
     service.signin = function (email, password, appName) {
-
-      // tutaj musisz coś wymyślić z logowaniem offline(chyba, że ionic nie wylogowuje jezeli nie było reinstalacji)
-      //call Backand for sign in
       return Backand.signin(email, password);
     };
 
     service.anonymousLogin = function () {
       // don't have to do anything here,
       // because we set app token att app.js
-    }
+    };
 
     service.socialSignIn = function (provider) {
       return Backand.socialSignIn(provider);
