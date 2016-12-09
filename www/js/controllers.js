@@ -112,11 +112,14 @@ angular.module('shoplist.controllers', [])
       ItemsModel.all()
         .then(function (result) {
             var toDel = ItemsModel.deletable();
-            vm.data = result.data.data
-              .filter(function (obj) {
-                return toDel.length == 0 || toDel.indexOf(obj.id) == -1;
-              })
-              .concat(ItemsModel.local());
+            console.log(typeof result.data);
+            if(typeof result.data !== 'undefined') {
+              vm.data = result.data.data
+                .filter(function (obj) {
+                  return toDel.length == 0 || toDel.indexOf(obj.id) == -1;
+                })
+                .concat(ItemsModel.local());
+            }
           }
         );
     }

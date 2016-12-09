@@ -54,8 +54,10 @@ angular.module('shoplist.services', [])
             $http.post(getUrl(), object);
           });
           instance.localAmounts.forEach(function (object) {
-              var real_id = instance.getId(object.item_id);
-              $http.put(getDeviceUrlForId(real_id), object);
+              // var real_id = instance.getId(object.item_id);
+              // $http.put(getDeviceUrlForId(real_id), object);
+
+              // $http.post(getDeviceUrl(), object);
           });
           instance.toChange.forEach(function (object) {
             $http.put(getUrlForId(object.id), object);
@@ -65,7 +67,7 @@ angular.module('shoplist.services', [])
             $http.delete(getUrlForId(id));
           });
           instance.newLocal = [];
-          instance.localAmounts = [];
+          // instance.localAmounts = [];
           instance.toDelete = [];
           instance.toChange = [];
           saveAll();
@@ -95,9 +97,11 @@ angular.module('shoplist.services', [])
           instance.newLocal.push(object);
           // var device_uuid = $cordovaDevice.getUUID();
           // var device_uuid = device.uuid;
-          instance.localAmounts.push({item_id: object.id, device_id: "lenovo", amount: object.amount});
+          instance.localAmounts.push({item_id: object.id, device_id: "lenovo", amount: 0.0});
+          // instance.localAmounts.push({item_id: object.id, device_id: "lenovo", amount: object.amount});
 
           // console.log('Device UUID is: ' + Device.device.uuid);
+          // console.log(window.device.uuid);
           saveAll();
         };
 
@@ -114,7 +118,7 @@ angular.module('shoplist.services', [])
                 }
               });
               if (!onLocalAmounts) {
-                instance.localAmounts.push({id: object.id, item_id: object.id, device_id: "lenovo", amount: object.amount});
+                instance.localAmounts.push({id: object.id, item_id: object.id, device_id: "lenovo", amount: 0.0});
                 instance.localAmounts.forEach(function (locAm){
                   if (locAm.id == object.id){
                     locAm.amount += 1;
@@ -138,7 +142,7 @@ angular.module('shoplist.services', [])
               }
             });
             if (!onLocalAmounts) {
-              instance.localAmounts.push({id: object.id, item_id: object.id, device_id: "lenovo", amount: object.amount});
+              instance.localAmounts.push({id: object.id, item_id: object.id, device_id: "lenovo", amount: 0.0});
               instance.localAmounts.forEach(function (locAm){
                 if (locAm.id == object.id){
                   locAm.amount -= 1;
