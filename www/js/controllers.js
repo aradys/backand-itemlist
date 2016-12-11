@@ -119,15 +119,7 @@ angular.module('shoplist.controllers', [])
                 })
                 .concat(ItemsModel.local());
               vm.data.forEach (function (obj){
-
                 obj.amount = parseInt(obj.rem_amount) + parseInt(obj.delta);
-                console.log("obj.rem_amount " + obj.rem_amount);
-                console.log("obj.delta " + obj.delta);
-                console.log("obj.amount " + obj.amount);
-
-                obj.rem_amount = obj.amount;
-                obj.delta = 0;
-
               })
             }
           }
@@ -142,14 +134,6 @@ angular.module('shoplist.controllers', [])
       ItemsModel.create(object)
         .then(function (result) {
           cancelCreate();
-          getAll();
-        });
-    }
-
-    function update(object) {
-      ItemsModel.update(object.id, object)
-        .then(function (result) {
-          cancelEditing();
           getAll();
         });
     }
@@ -212,7 +196,6 @@ angular.module('shoplist.controllers', [])
     vm.isCreating = false;
     vm.getAll = getAll;
     vm.create = create;
-    vm.update = update;
     vm.inc = inc;
     vm.dec = dec;
     vm.delete = deleteObject;

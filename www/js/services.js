@@ -30,10 +30,6 @@ angular.module('shoplist.services', [])
         if (!object.localAmounts) {
           object.localAmounts = [];
         }
-        object.serverAmounts = JSON.parse(localStorage.getItem("serverAmounts"));
-        if (!object.serverAmounts) {
-          object.serverAmounts = [];
-        }
         object.fromServer = JSON.parse(localStorage.getItem("fromServer"));
         if (!object.fromServer) {
           object.fromServer = [];
@@ -44,15 +40,23 @@ angular.module('shoplist.services', [])
         }
 
         object.synchronize = function () {
-          console.log("andro " + ionic.Platform.isAndroid());
-          console.log("ios " + ionic.Platform.isIOS());
           instance.fromServer = $http.get(getUrl());
-          instance.serverAmounts = $http.get(getDeviceUrl());
           instance.newLocal.forEach(function (object) {
             $http.post(getUrl(), object);
           });
           instance.localAmounts.forEach(function (object) {
-            $http.put(getUrlForId(object.id), object);
+            var updated;
+            instance.serverAmounts = $http.get(getUrlForId(object.id), object)
+              .then(function(response) {
+                updated = response.data.amount;
+                // console.log("obj.rem_amount " + object.rem_amount);
+                // console.log("obj.delta " + object.delta);
+                // console.log("obj.amount " + object.amount);
+                object.rem_amount = updated + object.delta;
+                object.amount = updated + object.delta;
+                object.delta = 0;
+                $http.put(getUrlForId(object.id), object);
+              });
           });
           instance.toDelete.forEach(function (id) {
             $http.delete(getUrlForId(id));
@@ -81,8 +85,8 @@ angular.module('shoplist.services', [])
               instance.localAmounts.forEach(function (locAm){
                 if (locAm.id == object.id){
                   object.delta = parseInt(object.delta) + 1;
+                  locAm.delta = object.delta;
                   onLocalAmounts = 1;
-                  console.log(object.delta);
                 }
               });
               if (!onLocalAmounts) {
@@ -103,8 +107,8 @@ angular.module('shoplist.services', [])
             instance.localAmounts.forEach(function (locAm){
               if (locAm.id == object.id){
                 object.delta = parseInt(object.delta) - 1;
+                locAm.delta = object.delta;
                 onLocalAmounts = 1;
-                console.log(object.delta);
               }
             });
             if (!onLocalAmounts) {
@@ -139,20 +143,19 @@ angular.module('shoplist.services', [])
         };
 
         object.all = function () {
-          object.fromServer = $http.get(getUrl());
           return object.fromServer;
         };
         return object;
       }
 
       function saveAll() {
+
         var storageInstance = StorageModule.getInstance();
 
         localStorage.setItem("toDelete", JSON.stringify(storageInstance.toDelete));
         localStorage.setItem("fromServer", JSON.stringify(storageInstance.fromServer));
         localStorage.setItem("newLocal", JSON.stringify(storageInstance.newLocal));
         localStorage.setItem("localAmounts", JSON.stringify(storageInstance.localAmounts));
-        localStorage.setItem("serverAmounts", JSON.stringify(storageInstance.serverAmounts));
         localStorage.setItem("toChange", JSON.stringify(storageInstance.toChange));
       }
 
@@ -171,59 +174,9 @@ angular.module('shoplist.services', [])
       return Backand.getApiUrl() + baseUrl + objectName;
     }
 
-    function getDeviceUrl(){
-      return Backand.getApiUrl() + baseUrl + 'device/';
-    }
-
     function getUrlForId(id) {
       return getUrl() + id;
     }
-
-    function getDeviceUrlForId(id) {
-      return getDeviceUrl() + id;
-    }
-
-    // function getIdFromDeviceTable(id){
-    //   // var storageInstance = StorageModule.getInstance();
-    //   // return storageInstance.all().filter(function (id) {
-    //     return $http({
-    //       method: 'GET',
-    //       url: baseUrl + "device/",
-    //       params: {
-    //         filter: JSON.stringify([{
-    //           fieldName: "item_id",
-    //           operator: "in",
-    //           value: id
-    //         }])
-    //       }
-    //     }).then(function (response) {
-    //       if (response.data && response.data.data && response.data.data.length == 1)
-    //         return response.data.data[0];
-    //     });
-    //   }
-
-    // service.getIdFromDeviceTable = function (id){
-    // // function getIdFromDeviceTable (id){
-    //   return $http({
-    //     method: 'GET',
-    //     url: baseUrl + "device/",
-    //     params: {
-    //       filter: JSON.stringify([{
-    //         fieldName: "item_id",
-    //         operator: "in",
-    //         value: id
-    //       }])
-    //     }
-    //   })
-    // };
-
-    service.getIdFromDeviceTable = function (id){
-      var storageInstance = StorageModule.getInstance();
-      storageInstance.getId(object);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
-    };
 
     service.all = function () {
       var storageInstance = StorageModule.getInstance();
@@ -244,7 +197,6 @@ angular.module('shoplist.services', [])
 
     service.amounts = function () {
       var storageInstance = StorageModule.getInstance();
-      console.log(storageInstance.localAmounts);
       return storageInstance.localAmounts;
     };
 
@@ -263,22 +215,12 @@ angular.module('shoplist.services', [])
     service.create = function (object) {
       object.username = Backand.getUsername();
       object.id = object.name;
-      // object.rem_amount = 0;
       var storageInstance = StorageModule.getInstance();
       storageInstance.add(object);
       return new Promise(function (resolve, reject) {
         resolve("Success!");
       });
     };
-
-    // do usuniecia
-    // service.update = function (id, object) {
-    //   var storageInstance = StorageModule.getInstance();
-    //   storageInstance.change(object);
-    //   return new Promise(function (resolve, reject) {
-    //     resolve("Success!");
-    //   });
-    // };
 
     service.inc = function (id, object) {
       var storageInstance = StorageModule.getInstance();
