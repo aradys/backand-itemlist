@@ -42,66 +42,34 @@ angular.module('shoplist.services', [])
         if (!object.newLocal) {
           object.newLocal = [];
         }
-        object.toChange = JSON.parse(localStorage.getItem("toChange"));
-        if (!object.toChange) {
-          object.toChange = [];
-        }
 
         object.synchronize = function () {
+          console.log("andro " + ionic.Platform.isAndroid());
+          console.log("ios " + ionic.Platform.isIOS());
           instance.fromServer = $http.get(getUrl());
           instance.serverAmounts = $http.get(getDeviceUrl());
           instance.newLocal.forEach(function (object) {
             $http.post(getUrl(), object);
           });
           instance.localAmounts.forEach(function (object) {
-              // var real_id = instance.getId(object.item_id);
-              // $http.put(getDeviceUrlForId(real_id), object);
-
-              // $http.post(getDeviceUrl(), object);
-          });
-          instance.toChange.forEach(function (object) {
+              // object.rem_amount = object.amount;
+              // object.delta = 0;
             $http.put(getUrlForId(object.id), object);
           });
           instance.toDelete.forEach(function (id) {
-            console.log(id);
             $http.delete(getUrlForId(id));
           });
           instance.newLocal = [];
-          // instance.localAmounts = [];
+          instance.localAmounts = [];
           instance.toDelete = [];
           instance.toChange = [];
           saveAll();
         };
 
-        object.getId = function (object) {
-
-          var result = $http({
-            method: 'GET',
-            url: baseUrl + "device",
-            params: {
-              pageSize: 1,
-              pageNumber: 1,
-              sort: "asc",
-              filter: JSON.stringify([ {    "fieldName": "item_id",    "operator": "in",    "value": "object.id"  }])
-            }
-          });
-
-          // var deviceList = Restangular.all("device").getList({ pageSize: 1, pageNumber: 1, filter: JSON.stringify([ {    "fieldName": "item_id",    "operator": "in",    "value": "78"  }]) }).$object;
-
-          console.log(result);
-          saveAll();
-          // return result.data.id;
-        };
-
         object.add = function (object) {
+          object.rem_amount = object.amount;
+          object.delta = 0;
           instance.newLocal.push(object);
-          // var device_uuid = $cordovaDevice.getUUID();
-          // var device_uuid = device.uuid;
-          instance.localAmounts.push({item_id: object.id, device_id: "lenovo", amount: 0.0});
-          // instance.localAmounts.push({item_id: object.id, device_id: "lenovo", amount: object.amount});
-
-          // console.log('Device UUID is: ' + Device.device.uuid);
-          // console.log(window.device.uuid);
           saveAll();
         };
 
@@ -109,21 +77,19 @@ angular.module('shoplist.services', [])
             var index = instance.newLocal.indexOf(object);
             if (index > -1) {
               instance.newLocal[index].amount = parseInt(instance.newLocal[index].amount) + 1;
+              instance.newLocal[index].rem_amount = parseInt(instance.newLocal[index].rem_amount) + 1;
             } else {
               var onLocalAmounts = 0;
               instance.localAmounts.forEach(function (locAm){
-                if (locAm.item_id == object.id){
-                  locAm.amount += 1;
+                if (locAm.id == object.id){
+                  object.delta = parseInt(object.delta) + 1;
                   onLocalAmounts = 1;
+                  console.log(object.delta);
                 }
               });
               if (!onLocalAmounts) {
-                instance.localAmounts.push({id: object.id, item_id: object.id, device_id: "lenovo", amount: 0.0});
-                instance.localAmounts.forEach(function (locAm){
-                  if (locAm.id == object.id){
-                    locAm.amount += 1;
-                  }
-                });
+                object.delta = parseInt(object.delta) + 1;
+                instance.localAmounts.push(object);
               }
           }
           saveAll();
@@ -132,39 +98,21 @@ angular.module('shoplist.services', [])
         object.decrease = function (object) {
           var index = instance.newLocal.indexOf(object);
           if (index > -1) {
-            instance.newLocal[index].amount = parseInt(instance.newLocal[index].amount) + 1;
+            instance.newLocal[index].amount = parseInt(instance.newLocal[index].amount) - 1;
+            instance.newLocal[index].rem_amount = parseInt(instance.newLocal[index].rem_amount) - 1;
           } else {
             var onLocalAmounts = 0;
             instance.localAmounts.forEach(function (locAm){
-              if (locAm.item_id == object.id){
-                locAm.amount -= 1;
+              if (locAm.id == object.id){
+                object.delta = parseInt(object.delta) - 1;
                 onLocalAmounts = 1;
+                console.log(object.delta);
               }
             });
             if (!onLocalAmounts) {
-              instance.localAmounts.push({id: object.id, item_id: object.id, device_id: "lenovo", amount: 0.0});
-              instance.localAmounts.forEach(function (locAm){
-                if (locAm.id == object.id){
-                  locAm.amount -= 1;
-                }
-              });
+              object.delta = parseInt(object.delta) - 1;
+              instance.localAmounts.push(object);
             }
-          }
-          saveAll();
-        };
-
-        // do usuniecia
-        object.change = function (object) {
-          var local = 0;
-          instance.newLocal.forEach(function (object) {
-            var index = instance.newLocal.indexOf(object);
-            if (index > -1) {
-              instance.newLocal[index] = object;
-              local = 1;
-            }
-          });
-          if (local == 0) {
-            instance.toChange.push(object);
           }
           saveAll();
         };
@@ -193,10 +141,8 @@ angular.module('shoplist.services', [])
         };
 
         object.all = function () {
-          // object.fromServer.forEach(function (obj){
-          //   obj.amount = serverAmounts.amount + localAmounts.amount;
-          // });
           return object.fromServer;
+          // return $http.get(getUrl());
         };
         return object;
       }
@@ -293,6 +239,17 @@ angular.module('shoplist.services', [])
       return storageInstance.newLocal;
     };
 
+    service.remote = function () {
+      var storageInstance = StorageModule.getInstance();
+      return storageInstance.fromServer;
+    };
+
+    service.amounts = function () {
+      var storageInstance = StorageModule.getInstance();
+      console.log(storageInstance.localAmounts);
+      return storageInstance.localAmounts;
+    };
+
     service.deletable = function () {
       var storageInstance = StorageModule.getInstance();
       return storageInstance.toDelete;
@@ -308,6 +265,7 @@ angular.module('shoplist.services', [])
     service.create = function (object) {
       object.username = Backand.getUsername();
       object.id = object.name;
+      // object.rem_amount = 0;
       var storageInstance = StorageModule.getInstance();
       storageInstance.add(object);
       return new Promise(function (resolve, reject) {
@@ -316,13 +274,13 @@ angular.module('shoplist.services', [])
     };
 
     // do usuniecia
-    service.update = function (id, object) {
-      var storageInstance = StorageModule.getInstance();
-      storageInstance.change(object);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
-    };
+    // service.update = function (id, object) {
+    //   var storageInstance = StorageModule.getInstance();
+    //   storageInstance.change(object);
+    //   return new Promise(function (resolve, reject) {
+    //     resolve("Success!");
+    //   });
+    // };
 
     service.inc = function (id, object) {
       var storageInstance = StorageModule.getInstance();

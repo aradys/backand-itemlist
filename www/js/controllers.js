@@ -112,13 +112,23 @@ angular.module('shoplist.controllers', [])
       ItemsModel.all()
         .then(function (result) {
             var toDel = ItemsModel.deletable();
-            console.log(typeof result.data);
             if(typeof result.data !== 'undefined') {
               vm.data = result.data.data
                 .filter(function (obj) {
                   return toDel.length == 0 || toDel.indexOf(obj.id) == -1;
                 })
                 .concat(ItemsModel.local());
+              vm.data.forEach (function (obj){
+
+                obj.amount = parseInt(obj.rem_amount) + parseInt(obj.delta);
+                console.log("obj.rem_amount " + obj.rem_amount);
+                console.log("obj.delta " + obj.delta);
+                console.log("obj.amount " + obj.amount);
+
+                obj.rem_amount = obj.amount;
+                obj.delta = 0;
+
+              })
             }
           }
         );
@@ -129,8 +139,6 @@ angular.module('shoplist.controllers', [])
     }
 
     function create(object) {
-      if (object.amount == "" || object.amount < 0) object.amount = 0;
-      if (object.price == "" || object.price < 0) object.price = 0;
       ItemsModel.create(object)
         .then(function (result) {
           cancelCreate();
@@ -155,7 +163,7 @@ angular.module('shoplist.controllers', [])
     }
 
     function initCreateForm() {
-      vm.newObject = {name: '', description: ''};
+      vm.newObject = {name: '', store: '', price:'', amount:''};
     }
 
     function setEdited(object) {
@@ -178,22 +186,17 @@ angular.module('shoplist.controllers', [])
     }
 
     function inc(object) {
-      // object.amount += 1;
       ItemsModel.inc(object.id, object)
         .then(function (result) {
-          console.log(object.id);
           getAll();
         });
     }
 
     function dec(object) {
-      // if (object.amount > 0) {
-        // object.amount -= 1;
         ItemsModel.dec(object.id, object)
           .then(function (result) {
             getAll();
           });
-      // }
     }
 
     function sync() {
