@@ -52,8 +52,6 @@ angular.module('shoplist.services', [])
             $http.post(getUrl(), object);
           });
           instance.localAmounts.forEach(function (object) {
-              // object.rem_amount = object.amount;
-              // object.delta = 0;
             $http.put(getUrlForId(object.id), object);
           });
           instance.toDelete.forEach(function (id) {
@@ -141,8 +139,8 @@ angular.module('shoplist.services', [])
         };
 
         object.all = function () {
+          object.fromServer = $http.get(getUrl());
           return object.fromServer;
-          // return $http.get(getUrl());
         };
         return object;
       }
