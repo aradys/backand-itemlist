@@ -112,7 +112,6 @@ angular.module('shoplist.controllers', [])
       ItemsModel.all()
         .then(function (result) {
             var toDel = ItemsModel.deletable();
-            console.log(typeof result.data);
             if(typeof result.data !== 'undefined') {
               vm.data = result.data.data
                 .filter(function (obj) {
@@ -134,14 +133,6 @@ angular.module('shoplist.controllers', [])
       ItemsModel.create(object)
         .then(function (result) {
           cancelCreate();
-          getAll();
-        });
-    }
-
-    function update(object) {
-      ItemsModel.update(object.id, object)
-        .then(function (result) {
-          cancelEditing();
           getAll();
         });
     }
@@ -209,7 +200,6 @@ angular.module('shoplist.controllers', [])
     vm.isCreating = false;
     vm.getAll = getAll;
     vm.create = create;
-    vm.update = update;
     vm.inc = inc;
     vm.dec = dec;
     vm.delete = deleteObject;

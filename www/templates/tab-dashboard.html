@@ -20,7 +20,7 @@
                         <div class="col col-8">
                             <button class="button button-clear icon-left ion-arrow-up-b" ng-click="vm.inc(object)"></button>
                         </div><div class="col col-8">
-                            <h5 class="text-center"><b>{{object.amount}}</b></h5>
+                            <h5 class="text-center"><b>{{object.rem_amount}}</b></h5>
                         </div><div class="col col-8">
                             <button class="button button-clear icon-left ion-arrow-down-b" ng-click="vm.dec(object)"></button>
                         </div>
@@ -60,7 +60,7 @@
                         <label class="item item-input item-stacked-label">
                             <span class="input-label">Amount</span>
                         <textarea class="form-control"
-                                  ng-model="vm.newObject.amount"
+                                  ng-model="vm.newObject.rem_amount"
                                   placeholder="How many left"></textarea>
                         </label>
                     </div>

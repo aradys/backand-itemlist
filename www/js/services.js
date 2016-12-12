@@ -19,6 +19,9 @@ angular.module('shoplist.services', [])
 
     var StorageModule = (function () {
       var instance;
+      var dev_id = "0"
+      if (ionic.Platform.isIOS())
+        dev_id = "1";
 
       function createInstance() {
         var object = new Object();
@@ -26,9 +29,13 @@ angular.module('shoplist.services', [])
         if (!object.toDelete) {
           object.toDelete = [];
         }
-        object.localAmounts = JSON.parse(localStorage.getItem("localAmounts"));
-        if (!object.localAmounts) {
-          object.localAmounts = [];
+        object.localItems = JSON.parse(localStorage.getItem("localItems"));
+        if (!object.localItems) {
+          object.localItems = [];
+        }
+        object.localDevices = JSON.parse(localStorage.getItem("localDevices"));
+        if (!object.localDevices) {
+          object.localDevices = [];
         }
         object.serverAmounts = JSON.parse(localStorage.getItem("serverAmounts"));
         if (!object.serverAmounts) {
@@ -42,135 +49,103 @@ angular.module('shoplist.services', [])
         if (!object.newLocal) {
           object.newLocal = [];
         }
-        object.toChange = JSON.parse(localStorage.getItem("toChange"));
-        if (!object.toChange) {
-          object.toChange = [];
-        }
 
         object.synchronize = function () {
           instance.fromServer = $http.get(getUrl());
-          instance.serverAmounts = $http.get(getDeviceUrl());
           instance.newLocal.forEach(function (object) {
             $http.post(getUrl(), object);
+            instance.fromServer = $http.get(getUrl())
+              .then(function(response) {
+                instance.localItems = response.data.data;
+                instance.localItems.forEach(function(loc){
+                  if(loc.name == object.name){
+                    object.id = loc.id;
+                    instance.localDevices.push({item_id: object.id, device_id: dev_id, amount: object.rem_amount});
+                    $http.post(getDeviceUrl(), {item_id: object.id, device_id: dev_id, amount: object.rem_amount});
+                  }
+                })
+              });
           });
-          instance.localAmounts.forEach(function (object) {
-              // var real_id = instance.getId(object.item_id);
-              // $http.put(getDeviceUrlForId(real_id), object);
+          instance.fromServer = $http.get(getUrl());
+          instance.localDevices.forEach(function (object) {
+            var result;
+            var device = getItemFromDevice(object.item_id, dev_id)
+              .then(function(response) {
+                result = response.data.data;
+                result.forEach (function (res) {
+                  if(typeof result !== 'undefined')
+                    $http.put(getDeviceUrlForId(res.id), object);
+                })
 
-              // $http.post(getDeviceUrl(), object);
+              });
           });
-          instance.toChange.forEach(function (object) {
-            $http.put(getUrlForId(object.id), object);
-          });
+          instance.serverAmounts = $http.get(getDeviceUrl());
           instance.toDelete.forEach(function (id) {
             console.log(id);
             $http.delete(getUrlForId(id));
+            var device = getItemFromDevice(id, dev_id);
+            if(typeof device !== 'undefined')
+              $http.delete(getDeviceUrlForId(device.id));
+            // instance.localItems.forEach(function(item){
+            //   if (item.id == id){
+            //     var index = instance.localItems.indexOf(item);
+            //     instance.localItems.splice(index, 1);
+            //   }
+            // })
+            // instance.localDevices.forEach(function(item){
+            //   if (item.item_id == id){
+            //     var index = instance.localItems.indexOf(item);
+            //     instance.localItems.splice(index, 1);
+            //   }
+            // })
           });
           instance.newLocal = [];
-          // instance.localAmounts = [];
           instance.toDelete = [];
-          instance.toChange = [];
+          // instance.localItems = [];
+          // instance.localDevices = [];
           saveAll();
-        };
-
-        object.getId = function (object) {
-
-          var result = $http({
-            method: 'GET',
-            url: baseUrl + "device",
-            params: {
-              pageSize: 1,
-              pageNumber: 1,
-              sort: "asc",
-              filter: JSON.stringify([ {    "fieldName": "item_id",    "operator": "in",    "value": "object.id"  }])
-            }
-          });
-
-          // var deviceList = Restangular.all("device").getList({ pageSize: 1, pageNumber: 1, filter: JSON.stringify([ {    "fieldName": "item_id",    "operator": "in",    "value": "78"  }]) }).$object;
-
-          console.log(result);
-          saveAll();
-          // return result.data.id;
         };
 
         object.add = function (object) {
           instance.newLocal.push(object);
-          // var device_uuid = $cordovaDevice.getUUID();
-          // var device_uuid = device.uuid;
-          instance.localAmounts.push({item_id: object.id, device_id: "lenovo", amount: 0.0});
-          // instance.localAmounts.push({item_id: object.id, device_id: "lenovo", amount: object.amount});
-
-          // console.log('Device UUID is: ' + Device.device.uuid);
-          // console.log(window.device.uuid);
           saveAll();
         };
 
         object.increase = function (object) {
-            var index = instance.newLocal.indexOf(object);
-            if (index > -1) {
-              instance.newLocal[index].amount = parseInt(instance.newLocal[index].amount) + 1;
+          console.log(object);
+            var index1 = instance.newLocal.indexOf(object);
+            if (index1 > -1) {
+              instance.newLocal[index1].rem_amount = parseInt(instance.newLocal[index1].rem_amount) + 1;
             } else {
-              var onLocalAmounts = 0;
-              instance.localAmounts.forEach(function (locAm){
-                if (locAm.item_id == object.id){
-                  locAm.amount += 1;
-                  onLocalAmounts = 1;
+              console.log(instance.localDevices);
+              instance.localDevices.forEach(function (locAm){
+                if (locAm.item_id == object.id && locAm.device_id == dev_id){
+                  locAm.amount = parseInt(locAm.amount) + 1;
+                  console.log(locAm.amount);
                 }
               });
-              if (!onLocalAmounts) {
-                instance.localAmounts.push({id: object.id, item_id: object.id, device_id: "lenovo", amount: 0.0});
-                instance.localAmounts.forEach(function (locAm){
-                  if (locAm.id == object.id){
-                    locAm.amount += 1;
-                  }
-                });
-              }
           }
           saveAll();
         };
 
         object.decrease = function (object) {
-          var index = instance.newLocal.indexOf(object);
-          if (index > -1) {
-            instance.newLocal[index].amount = parseInt(instance.newLocal[index].amount) + 1;
+          console.log(object);
+          var index1 = instance.newLocal.indexOf(object);
+          if (index1 > -1) {
+            instance.newLocal[index1].rem_amount = parseInt(instance.newLocal[index1].rem_amount) - 1;
           } else {
-            var onLocalAmounts = 0;
-            instance.localAmounts.forEach(function (locAm){
-              if (locAm.item_id == object.id){
-                locAm.amount -= 1;
-                onLocalAmounts = 1;
+            console.log(instance.localDevices);
+            instance.localDevices.forEach(function (locAm){
+              if (locAm.item_id == object.id && locAm.device_id == dev_id){
+                locAm.amount = parseInt(locAm.amount) - 1;
+                console.log(locAm.amount);
               }
             });
-            if (!onLocalAmounts) {
-              instance.localAmounts.push({id: object.id, item_id: object.id, device_id: "lenovo", amount: 0.0});
-              instance.localAmounts.forEach(function (locAm){
-                if (locAm.id == object.id){
-                  locAm.amount -= 1;
-                }
-              });
-            }
-          }
-          saveAll();
-        };
-
-        // do usuniecia
-        object.change = function (object) {
-          var local = 0;
-          instance.newLocal.forEach(function (object) {
-            var index = instance.newLocal.indexOf(object);
-            if (index > -1) {
-              instance.newLocal[index] = object;
-              local = 1;
-            }
-          });
-          if (local == 0) {
-            instance.toChange.push(object);
           }
           saveAll();
         };
 
         object.del = function (id) {
-
           var newDeletable = [];
           var newItem = 0;
           instance.newLocal.forEach(function (local) {
@@ -193,9 +168,6 @@ angular.module('shoplist.services', [])
         };
 
         object.all = function () {
-          // object.fromServer.forEach(function (obj){
-          //   obj.amount = serverAmounts.amount + localAmounts.amount;
-          // });
           return object.fromServer;
         };
         return object;
@@ -207,9 +179,9 @@ angular.module('shoplist.services', [])
         localStorage.setItem("toDelete", JSON.stringify(storageInstance.toDelete));
         localStorage.setItem("fromServer", JSON.stringify(storageInstance.fromServer));
         localStorage.setItem("newLocal", JSON.stringify(storageInstance.newLocal));
-        localStorage.setItem("localAmounts", JSON.stringify(storageInstance.localAmounts));
+        localStorage.setItem("localItems", JSON.stringify(storageInstance.localItems));
+        localStorage.setItem("localDevices", JSON.stringify(storageInstance.localDevices));
         localStorage.setItem("serverAmounts", JSON.stringify(storageInstance.serverAmounts));
-        localStorage.setItem("toChange", JSON.stringify(storageInstance.toChange));
       }
 
       return {
@@ -239,47 +211,29 @@ angular.module('shoplist.services', [])
       return getDeviceUrl() + id;
     }
 
-    // function getIdFromDeviceTable(id){
-    //   // var storageInstance = StorageModule.getInstance();
-    //   // return storageInstance.all().filter(function (id) {
-    //     return $http({
-    //       method: 'GET',
-    //       url: baseUrl + "device/",
-    //       params: {
-    //         filter: JSON.stringify([{
-    //           fieldName: "item_id",
-    //           operator: "in",
-    //           value: id
-    //         }])
-    //       }
-    //     }).then(function (response) {
-    //       if (response.data && response.data.data && response.data.data.length == 1)
-    //         return response.data.data[0];
-    //     });
-    //   }
-
-    // service.getIdFromDeviceTable = function (id){
-    // // function getIdFromDeviceTable (id){
-    //   return $http({
-    //     method: 'GET',
-    //     url: baseUrl + "device/",
-    //     params: {
-    //       filter: JSON.stringify([{
-    //         fieldName: "item_id",
-    //         operator: "in",
-    //         value: id
-    //       }])
-    //     }
-    //   })
-    // };
-
-    service.getIdFromDeviceTable = function (id){
-      var storageInstance = StorageModule.getInstance();
-      storageInstance.getId(object);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
-    };
+    function getItemFromDevice(id, did) {
+      return $http({
+        method: 'GET',
+        url: Backand.getApiUrl() + '/1/objects/device',
+        params: {
+          pageSize: 20,
+          pageNumber: 1,
+          filter: [
+            {
+              fieldName: 'item_id',
+              operator: 'in',
+              value: id
+            },
+            {
+              fieldName: 'device_id',
+              operator: 'equals',
+              value: did
+            }
+          ],
+          sort: ''
+        }
+      })
+    }
 
     service.all = function () {
       var storageInstance = StorageModule.getInstance();
@@ -307,18 +261,9 @@ angular.module('shoplist.services', [])
 
     service.create = function (object) {
       object.username = Backand.getUsername();
-      object.id = object.name;
+      // object.id = object.name;
       var storageInstance = StorageModule.getInstance();
       storageInstance.add(object);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
-    };
-
-    // do usuniecia
-    service.update = function (id, object) {
-      var storageInstance = StorageModule.getInstance();
-      storageInstance.change(object);
       return new Promise(function (resolve, reject) {
         resolve("Success!");
       });
