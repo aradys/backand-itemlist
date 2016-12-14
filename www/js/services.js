@@ -23,6 +23,7 @@ angular.module('shoplist.services', [])
       if (ionic.Platform.isIOS())
         dev_id = "1";
 
+      console.log(dev_id);
       function createInstance() {
         var object = new Object();
         object.toDelete = JSON.parse(localStorage.getItem("toDelete"));
@@ -51,6 +52,7 @@ angular.module('shoplist.services', [])
         }
 
         object.synchronize = function () {
+
           instance.fromServer = $http.get(getUrl());
           instance.newLocal.forEach(function (object) {
             $http.post(getUrl(), object);
@@ -72,9 +74,18 @@ angular.module('shoplist.services', [])
             var device = getItemFromDevice(object.item_id, dev_id)
               .then(function(response) {
                 result = response.data.data;
+                console.log("my id: " + dev_id);
+                console.log(result);
+                if(result.length == 0){
+                  $http.post(getDeviceUrl(), object);
+                  console.log("jeszcze nie ma");
+                }
                 result.forEach (function (res) {
                   if(typeof result !== 'undefined')
+                  if(res.device_id == dev_id) {
                     $http.put(getDeviceUrlForId(res.id), object);
+                    console.log("juz jest");
+                  }
                 })
 
               });
@@ -86,23 +97,21 @@ angular.module('shoplist.services', [])
             var device = getItemFromDevice(id, dev_id);
             if(typeof device !== 'undefined')
               $http.delete(getDeviceUrlForId(device.id));
-            // instance.localItems.forEach(function(item){
-            //   if (item.id == id){
-            //     var index = instance.localItems.indexOf(item);
-            //     instance.localItems.splice(index, 1);
-            //   }
-            // })
-            // instance.localDevices.forEach(function(item){
-            //   if (item.item_id == id){
-            //     var index = instance.localItems.indexOf(item);
-            //     instance.localItems.splice(index, 1);
-            //   }
-            // })
+            instance.localItems.forEach(function(item){
+              if (item.id == id){
+                var index = instance.localItems.indexOf(item);
+                instance.localItems.splice(index, 1);
+              }
+            })
+            instance.localDevices.forEach(function(item){
+              if (item.item_id == id){
+                var index = instance.localItems.indexOf(item);
+                instance.localItems.splice(index, 1);
+              }
+            })
           });
           instance.newLocal = [];
           instance.toDelete = [];
-          // instance.localItems = [];
-          // instance.localDevices = [];
           saveAll();
         };
 
@@ -118,12 +127,19 @@ angular.module('shoplist.services', [])
               instance.newLocal[index1].rem_amount = parseInt(instance.newLocal[index1].rem_amount) + 1;
             } else {
               console.log(instance.localDevices);
+              object.rem_amount += 1;
+              var onLocalDevice = 0;
               instance.localDevices.forEach(function (locAm){
                 if (locAm.item_id == object.id && locAm.device_id == dev_id){
                   locAm.amount = parseInt(locAm.amount) + 1;
+                  onLocalDevice = 1;
                   console.log(locAm.amount);
                 }
               });
+              if(!onLocalDevice) {
+                object.rem_amount += 1;
+                instance.localDevices.push({item_id: object.id, device_id: dev_id, amount: object.rem_amount});
+              }
           }
           saveAll();
         };
@@ -135,6 +151,7 @@ angular.module('shoplist.services', [])
             instance.newLocal[index1].rem_amount = parseInt(instance.newLocal[index1].rem_amount) - 1;
           } else {
             console.log(instance.localDevices);
+            object.rem_amount -= 1;
             instance.localDevices.forEach(function (locAm){
               if (locAm.item_id == object.id && locAm.device_id == dev_id){
                 locAm.amount = parseInt(locAm.amount) - 1;
@@ -261,7 +278,6 @@ angular.module('shoplist.services', [])
 
     service.create = function (object) {
       object.username = Backand.getUsername();
-      // object.id = object.name;
       var storageInstance = StorageModule.getInstance();
       storageInstance.add(object);
       return new Promise(function (resolve, reject) {
