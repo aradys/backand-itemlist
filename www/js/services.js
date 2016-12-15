@@ -10,7 +10,6 @@ angular.module('shoplist.services', [])
       return $q.reject(response);
     };
   })
-
   .service('ItemsModel', function ($http, Backand) {
     var service = this,
       baseUrl = '/1/objects/',
@@ -39,15 +38,18 @@ angular.module('shoplist.services', [])
           object.newLocal = [];
         }
 
-        object.synchronize = function () {
-          instance.fromServer = $http.get(getUrl());
+        object.synchronize = function (callback) {
+          $http.get(getUrl()).then(function(result){
+            instance.fromServer = result;
+            callback();
+          });
           instance.newLocal.forEach(function (object) {
             $http.post(getUrl(), object);
           });
           instance.localAmounts.forEach(function (object) {
             var updated;
             instance.serverAmounts = $http.get(getUrlForId(object.id), object)
-              .then(function(response) {
+              .then(function (response) {
                 updated = response.data.amount;
                 // console.log("obj.rem_amount " + object.rem_amount);
                 // console.log("obj.delta " + object.delta);
@@ -66,6 +68,7 @@ angular.module('shoplist.services', [])
           instance.toDelete = [];
           instance.toChange = [];
           saveAll();
+          return $http.get(getUrl());
         };
 
         object.add = function (object) {
@@ -76,23 +79,23 @@ angular.module('shoplist.services', [])
         };
 
         object.increase = function (object) {
-            var index = instance.newLocal.indexOf(object);
-            if (index > -1) {
-              instance.newLocal[index].amount = parseInt(instance.newLocal[index].amount) + 1;
-              instance.newLocal[index].rem_amount = parseInt(instance.newLocal[index].rem_amount) + 1;
-            } else {
-              var onLocalAmounts = 0;
-              instance.localAmounts.forEach(function (locAm){
-                if (locAm.id == object.id){
-                  object.delta = parseInt(object.delta) + 1;
-                  locAm.delta = object.delta;
-                  onLocalAmounts = 1;
-                }
-              });
-              if (!onLocalAmounts) {
+          var index = instance.newLocal.indexOf(object);
+          if (index > -1) {
+            instance.newLocal[index].amount = parseInt(instance.newLocal[index].amount) + 1;
+            instance.newLocal[index].rem_amount = parseInt(instance.newLocal[index].rem_amount) + 1;
+          } else {
+            var onLocalAmounts = 0;
+            instance.localAmounts.forEach(function (locAm) {
+              if (locAm.id == object.id) {
                 object.delta = parseInt(object.delta) + 1;
-                instance.localAmounts.push(object);
+                locAm.delta = object.delta;
+                onLocalAmounts = 1;
               }
+            });
+            if (!onLocalAmounts) {
+              object.delta = parseInt(object.delta) + 1;
+              instance.localAmounts.push(object);
+            }
           }
           saveAll();
         };
@@ -104,8 +107,8 @@ angular.module('shoplist.services', [])
             instance.newLocal[index].rem_amount = parseInt(instance.newLocal[index].rem_amount) - 1;
           } else {
             var onLocalAmounts = 0;
-            instance.localAmounts.forEach(function (locAm){
-              if (locAm.id == object.id){
+            instance.localAmounts.forEach(function (locAm) {
+              if (locAm.id == object.id) {
                 object.delta = parseInt(object.delta) - 1;
                 locAm.delta = object.delta;
                 onLocalAmounts = 1;
@@ -246,9 +249,9 @@ angular.module('shoplist.services', [])
       });
     };
 
-    service.sync = function () {
+    service.sync = function (callback) {
       var storageInstance = StorageModule.getInstance();
-      storageInstance.synchronize();
+      storageInstance.synchronize(callback);
       return new Promise(function (resolve, reject) {
         resolve("Success!");
       });
