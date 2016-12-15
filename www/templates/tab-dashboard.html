@@ -8,9 +8,8 @@
             </div>
             <div class="bar bar-subheader">
                 <div class="list card" ng-repeat="object in vm.data" ng-class="{'active':vm.isCurrent(object.id)}">
-                    <div class="item item-icon-right item-icon-left item-positive">
-                        <i class="ion-compose icon" ng-click="vm.setEdited(object)"></i>
-                        <h2 class="text-center"><b style="color: white">{{object.name}}</b></h2>
+                    <div class="item item-icon-right item-positive">
+                        <h2 class="text-left"><b style="color: white">{{object.name}}</b></h2>
                         <i class="icon ion-close-round" ng-click="vm.delete(object.id)"></i>
                     </div>
                     <div class="row">

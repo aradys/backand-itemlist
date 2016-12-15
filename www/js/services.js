@@ -38,10 +38,6 @@ angular.module('shoplist.services', [])
         if (!object.localDevices) {
           object.localDevices = [];
         }
-        object.serverAmounts = JSON.parse(localStorage.getItem("serverAmounts"));
-        if (!object.serverAmounts) {
-          object.serverAmounts = [];
-        }
         object.fromServer = JSON.parse(localStorage.getItem("fromServer"));
         if (!object.fromServer) {
           object.fromServer = [];
@@ -51,9 +47,8 @@ angular.module('shoplist.services', [])
           object.newLocal = [];
         }
 
-        object.synchronize = function () {
+        object.synchronize = function (callback) {
 
-          instance.fromServer = $http.get(getUrl());
           instance.newLocal.forEach(function (object) {
             $http.post(getUrl(), object);
             instance.fromServer = $http.get(getUrl())
@@ -68,29 +63,32 @@ angular.module('shoplist.services', [])
                 })
               });
           });
-          instance.fromServer = $http.get(getUrl());
-          instance.localDevices.forEach(function (object) {
+
+          instance.localDevices.forEach(function (object){
             var result;
             var device = getItemFromDevice(object.item_id, dev_id)
               .then(function(response) {
                 result = response.data.data;
-                console.log("my id: " + dev_id);
                 console.log(result);
-                if(result.length == 0){
-                  $http.post(getDeviceUrl(), object);
-                  console.log("jeszcze nie ma");
-                }
-                result.forEach (function (res) {
-                  if(typeof result !== 'undefined')
-                  if(res.device_id == dev_id) {
+              // });
+            if(typeof result !== 'undefined') {
+              console.log("my id: " + dev_id);
+              console.log(result);
+              if (result.length == 0) {
+                $http.post(getDeviceUrl(), object);
+                console.log("jeszcze nie ma");
+              }
+              result.forEach(function (res) {
+                if (typeof result !== 'undefined')
+                  if (res.device_id == dev_id) {
                     $http.put(getDeviceUrlForId(res.id), object);
                     console.log("juz jest");
                   }
-                })
+              })
+            }
 
               });
           });
-          instance.serverAmounts = $http.get(getDeviceUrl());
           instance.toDelete.forEach(function (id) {
             console.log(id);
             $http.delete(getUrlForId(id));
@@ -112,7 +110,14 @@ angular.module('shoplist.services', [])
           });
           instance.newLocal = [];
           instance.toDelete = [];
+          instance.localDevices = [];
+
+          $http.get(getUrl()).then(function(result){
+            instance.fromServer = result;
+            callback();
+          });
           saveAll();
+          return $http.get(getUrl());
         };
 
         object.add = function (object) {
@@ -145,12 +150,12 @@ angular.module('shoplist.services', [])
         };
 
         object.decrease = function (object) {
-          console.log(object);
+          // console.log(object);
           var index1 = instance.newLocal.indexOf(object);
           if (index1 > -1) {
             instance.newLocal[index1].rem_amount = parseInt(instance.newLocal[index1].rem_amount) - 1;
           } else {
-            console.log(instance.localDevices);
+            // console.log(instance.localDevices);
             object.rem_amount -= 1;
             instance.localDevices.forEach(function (locAm){
               if (locAm.item_id == object.id && locAm.device_id == dev_id){
@@ -198,7 +203,6 @@ angular.module('shoplist.services', [])
         localStorage.setItem("newLocal", JSON.stringify(storageInstance.newLocal));
         localStorage.setItem("localItems", JSON.stringify(storageInstance.localItems));
         localStorage.setItem("localDevices", JSON.stringify(storageInstance.localDevices));
-        localStorage.setItem("serverAmounts", JSON.stringify(storageInstance.serverAmounts));
       }
 
       return {
@@ -276,42 +280,39 @@ angular.module('shoplist.services', [])
       });
     };
 
+    // service.create = function (object) {
+    //   object.username = Backand.getUsername();
+    //   var storageInstance = StorageModule.getInstance();
+    //   storageInstance.add(object);
+    //   return new Promise(function (resolve, reject) {
+    //     resolve("Success!");
+    //   });
+    // };
+
     service.create = function (object) {
       object.username = Backand.getUsername();
       var storageInstance = StorageModule.getInstance();
       storageInstance.add(object);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
     };
 
     service.inc = function (id, object) {
       var storageInstance = StorageModule.getInstance();
       storageInstance.increase(object);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
     };
 
     service.dec = function (id, object) {
       var storageInstance = StorageModule.getInstance();
       storageInstance.decrease(object);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
     };
 
     service.delete = function (id) {
       var storageInstance = StorageModule.getInstance();
       storageInstance.del(id);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
     };
 
-    service.sync = function () {
+    service.sync = function (callback) {
       var storageInstance = StorageModule.getInstance();
-      storageInstance.synchronize();
+      storageInstance.synchronize(callback);
       return new Promise(function (resolve, reject) {
         resolve("Success!");
       });

@@ -128,21 +128,15 @@ angular.module('shoplist.controllers', [])
     }
 
     function create(object) {
-      if (object.amount == "" || object.amount < 0) object.amount = 0;
-      if (object.price == "" || object.price < 0) object.price = 0;
-      ItemsModel.create(object)
-        .then(function (result) {
-          cancelCreate();
-          getAll();
-        });
+      ItemsModel.create(object);
+      cancelCreate();
+      getAll();
     }
 
     function deleteObject(id) {
-      ItemsModel.delete(id)
-        .then(function (result) {
-          cancelEditing();
-          getAll();
-        });
+      ItemsModel.delete(id);
+      cancelEditing();
+      getAll();
     }
 
     function initCreateForm() {
@@ -169,29 +163,17 @@ angular.module('shoplist.controllers', [])
     }
 
     function inc(object) {
-      // object.amount += 1;
-      ItemsModel.inc(object.id, object)
-        .then(function (result) {
-          console.log(object.id);
-          getAll();
-        });
+      ItemsModel.inc(object.id, object);
+      getAll();
     }
 
     function dec(object) {
-      // if (object.amount > 0) {
-        // object.amount -= 1;
-        ItemsModel.dec(object.id, object)
-          .then(function (result) {
-            getAll();
-          });
-      // }
+      ItemsModel.dec(object.id, object);
+      getAll();
     }
 
     function sync() {
-      ItemsModel.sync()
-        .then(function (result) {
-          getAll();
-        });
+      ItemsModel.sync(getAll);
     }
 
     vm.objects = [];
