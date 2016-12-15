@@ -47,9 +47,9 @@ angular.module('shoplist.services', [])
         }
 
         object.synchronize = function (callback) {
-
+          var promises = [];
           instance.newLocal.forEach(function (object) {
-            $http.post(getUrl(), object);
+            promises.push($http.post(getUrl(), object));
             instance.fromServer = $http.get(getUrl())
               .then(function (response) {
                 instance.localItems = response.data.data;
@@ -61,6 +61,7 @@ angular.module('shoplist.services', [])
                   }
                 })
               });
+            promises.push(instance.fromServer);
           });
 
           instance.localDevices.forEach(function (object) {
@@ -86,10 +87,11 @@ angular.module('shoplist.services', [])
                   })
                 }
               });
+            promises.push(device);
           });
           instance.toDelete.forEach(function (id) {
             console.log(id);
-            $http.delete(getUrlForId(id));
+            promises.push($http.delete(getUrlForId(id)));
             var device = getItemFromDevice(id, dev_id);
             if (typeof device !== 'undefined')
               $http.delete(getDeviceUrlForId(device.id));
@@ -110,12 +112,14 @@ angular.module('shoplist.services', [])
           instance.toDelete = [];
           instance.localDevices = [];
 
-          $http.get(getUrl()).then(function (result) {
+          promises.push($http.get(getUrl()).then(function (result) {
             instance.fromServer = result;
             callback();
-          });
+          }));
           saveAll();
-          return $http.get(getUrl());
+          return Promise.all(promises).then(function () {
+            return $http.get(getUrl());
+          });
         };
 
         object.add = function (object) {
@@ -196,11 +200,22 @@ angular.module('shoplist.services', [])
       function saveAll() {
         var storageInstance = StorageModule.getInstance();
 
+        console.log('saving:');
         localStorage.setItem("toDelete", JSON.stringify(storageInstance.toDelete));
-        localStorage.setItem("fromServer", JSON.stringify(storageInstance.fromServer));
+        console.log('toDelete:');
+        console.log(JSON.stringify(storageInstance.toDelete));
+        localStorage.setItem("fromServer", JSON.stringify(storageInstance.fromServer.data));
+        console.log('fromServer:');
+        console.log(JSON.stringify(storageInstance.fromServer));
         localStorage.setItem("newLocal", JSON.stringify(storageInstance.newLocal));
+        console.log('newLocal:');
+        console.log(JSON.stringify(storageInstance.newLocal));
         localStorage.setItem("localItems", JSON.stringify(storageInstance.localItems));
+        console.log('localItems:');
+        console.log(JSON.stringify(storageInstance.localItems));
         localStorage.setItem("localDevices", JSON.stringify(storageInstance.localDevices));
+        console.log('localDevices:');
+        console.log(JSON.stringify(storageInstance.localDevices));
       }
 
       return {
