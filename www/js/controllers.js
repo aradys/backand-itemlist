@@ -101,7 +101,7 @@ angular.module('shoplist.controllers', [])
     vm.errorMessage = '';
   })
 
-  .controller('DashboardCtrl', function (ItemsModel, $rootScope) {
+  .controller('DashboardCtrl', function (ItemsModel, $rootScope, $timeout) {
     var vm = this;
 
     function goToBackand() {
@@ -112,7 +112,7 @@ angular.module('shoplist.controllers', [])
       ItemsModel.all()
         .then(function (result) {
             var toDel = ItemsModel.deletable();
-            if(typeof result.data !== 'undefined') {
+            if (typeof result.data !== 'undefined') {
               vm.data = result.data.data
                 .filter(function (obj) {
                   return toDel.length == 0 || toDel.indexOf(obj.id) == -1;
@@ -136,7 +136,7 @@ angular.module('shoplist.controllers', [])
     function deleteObject(id) {
       ItemsModel.delete(id);
       cancelEditing();
-      getAll();
+      $timeout(getAll());
     }
 
     function initCreateForm() {
@@ -164,12 +164,12 @@ angular.module('shoplist.controllers', [])
 
     function inc(object) {
       ItemsModel.inc(object.id, object);
-      getAll();
+      $timeout(getAll());
     }
 
     function dec(object) {
       ItemsModel.dec(object.id, object);
-      getAll();
+      $timeout(getAll());
     }
 
     function sync() {
