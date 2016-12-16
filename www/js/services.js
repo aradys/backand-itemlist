@@ -46,7 +46,7 @@ angular.module('shoplist.services', [])
           object.newLocal = [];
         }
 
-        object.synchronize = function (callback) {
+        object.synchronize = function () {
           var promises = [];
           instance.newLocal.forEach(function (object) {
             promises.push($http.post(getUrl(), object));
@@ -114,7 +114,6 @@ angular.module('shoplist.services', [])
 
           promises.push($http.get(getUrl()).then(function (result) {
             instance.fromServer = result;
-            callback();
           }));
           saveAll();
           return Promise.all(promises).then(function () {
@@ -325,10 +324,7 @@ angular.module('shoplist.services', [])
 
     service.sync = function (callback) {
       var storageInstance = StorageModule.getInstance();
-      storageInstance.synchronize(callback);
-      return new Promise(function (resolve, reject) {
-        resolve("Success!");
-      });
+      return storageInstance.synchronize(callback);
     };
   })
 

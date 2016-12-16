@@ -1,4 +1,4 @@
-angular.module('shoplist.controllers', [])
+angular.module('shoplist.controllers', ['ionic'])
 
   .controller('LoginCtrl', function (Backand, $state, $rootScope, LoginService) {
     var login = this;
@@ -102,113 +102,118 @@ angular.module('shoplist.controllers', [])
   })
 
   .controller('DashboardCtrl', function (ItemsModel, $rootScope, $timeout) {
-    var vm = this;
+      var vm = this;
 
-    function goToBackand() {
-      window.location = 'http://docs.backand.com';
-    }
+      function goToBackand() {
+        window.location = 'http://docs.backand.com';
+      }
 
-    function getAll() {
-      ItemsModel.all()
-        .then(function (result) {
-            var toDel = ItemsModel.deletable();
-            if (typeof result.data !== 'undefined') {
-              vm.data = result.data.data
-                .filter(function (obj) {
-                  return toDel.length == 0 || toDel.indexOf(obj.id) == -1;
-                })
-                .concat(ItemsModel.local());
+      function getAll() {
+        return ItemsModel.all()
+          .then(function (result) {
+              var toDel = ItemsModel.deletable();
+              if (typeof result.data !== 'undefined') {
+                vm.data = result.data.data
+                  .filter(function (obj) {
+                    return toDel.length == 0 || toDel.indexOf(obj.id) == -1;
+                  })
+                  .concat(ItemsModel.local());
+              }
             }
-          }
-        );
-    }
+          );
+      }
 
-    function clearData() {
-      vm.data = null;
-    }
+      function clearData() {
+        vm.data = null;
+      }
 
-    function create(object) {
-      ItemsModel.create(object);
-      cancelCreate();
-      getAll();
-    }
+      function create(object) {
+        ItemsModel.create(object);
+        cancelCreate();
+        getAll();
+      }
 
-    function deleteObject(id) {
-      ItemsModel.delete(id);
-      cancelEditing();
-      $timeout(getAll());
-    }
+      function deleteObject(id) {
+        ItemsModel.delete(id);
+        cancelEditing();
+        $timeout(getAll());
+      }
 
-    function initCreateForm() {
-      vm.newObject = {name: '', description: ''};
-    }
+      function initCreateForm() {
+        vm.newObject = {name: '', description: ''};
+      }
 
-    function setEdited(object) {
-      vm.edited = angular.copy(object);
-      vm.isEditing = true;
-    }
+      function setEdited(object) {
+        vm.edited = angular.copy(object);
+        vm.isEditing = true;
+      }
 
-    function isCurrent(id) {
-      return vm.edited !== null && vm.edited.id === id;
-    }
+      function isCurrent(id) {
+        return vm.edited !== null && vm.edited.id === id;
+      }
 
-    function cancelEditing() {
+      function cancelEditing() {
+        vm.edited = null;
+        vm.isEditing = false;
+      }
+
+      function cancelCreate() {
+        initCreateForm();
+        vm.isCreating = false;
+      }
+
+      function inc(object) {
+        ItemsModel.inc(object.id, object);
+        $timeout(getAll());
+      }
+
+      function dec(object) {
+        ItemsModel.dec(object.id, object);
+        $timeout(getAll());
+      }
+
+      function sync() {
+        ItemsModel.sync().then(function () {
+          getAll().then(function () {
+            $rootScope.$broadcast('scroll.refreshComplete');
+          });
+        });
+      }
+
+      vm.objects = [];
       vm.edited = null;
       vm.isEditing = false;
-    }
-
-    function cancelCreate() {
-      initCreateForm();
       vm.isCreating = false;
-    }
+      vm.getAll = getAll;
+      vm.create = create;
+      vm.inc = inc;
+      vm.dec = dec;
+      vm.delete = deleteObject;
+      vm.setEdited = setEdited;
+      vm.isCurrent = isCurrent;
+      vm.cancelEditing = cancelEditing;
+      vm.cancelCreate = cancelCreate;
+      vm.goToBackand = goToBackand;
+      vm.isAuthorized = false;
+      vm.sync = sync;
 
-    function inc(object) {
-      ItemsModel.inc(object.id, object);
-      $timeout(getAll());
-    }
+      $rootScope.$on('authorized', function () {
+        vm.isAuthorized = true;
+        getAll();
+      });
 
-    function dec(object) {
-      ItemsModel.dec(object.id, object);
-      $timeout(getAll());
-    }
+      $rootScope.$on('logout', function () {
+        clearData();
+      });
 
-    function sync() {
-      ItemsModel.sync(getAll);
-    }
+      if (!vm.isAuthorized) {
+        $rootScope.$broadcast('logout');
+      }
 
-    vm.objects = [];
-    vm.edited = null;
-    vm.isEditing = false;
-    vm.isCreating = false;
-    vm.getAll = getAll;
-    vm.create = create;
-    vm.inc = inc;
-    vm.dec = dec;
-    vm.delete = deleteObject;
-    vm.setEdited = setEdited;
-    vm.isCurrent = isCurrent;
-    vm.cancelEditing = cancelEditing;
-    vm.cancelCreate = cancelCreate;
-    vm.goToBackand = goToBackand;
-    vm.isAuthorized = false;
-    vm.sync = sync;
-
-    $rootScope.$on('authorized', function () {
-      vm.isAuthorized = true;
+      initCreateForm();
       getAll();
-    });
 
-    $rootScope.$on('logout', function () {
-      clearData();
-    });
-
-    if (!vm.isAuthorized) {
-      $rootScope.$broadcast('logout');
     }
-
-    initCreateForm();
-    getAll();
-
-  })
+  )
 ;
 
