@@ -184,10 +184,7 @@ angular.module('shoplist.controllers', [])
     }
 
     function sync() {
-      ItemsModel.sync()
-        .then(function (result) {
-          getAll();
-        });
+      ItemsModel.sync(getAll);
     }
 
     vm.objects = [];
